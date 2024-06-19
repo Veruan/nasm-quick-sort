@@ -3,49 +3,47 @@
 
 .section .data
 entry_msg: 
-    .asciz "Enter Data\n"
+    .asciz "Enter a number:\n"
     entry_msg_len = . - entry_msg
 
 input_buffer: 
-    .skip 64
+    .skip 32
 
 int_array:
-    .int 0, 0, 0, 0, 0
+    .int 0
 
 .section .text
 _start:
 
-    // sys_write
+    //write entry_msg
     mov rax, 1
     mov rdi, 1
     lea rsi, [entry_msg]
     mov rdx, entry_msg_len
     syscall
 
-    // sys_read
-    mov rax, 0
-    mov rdi, 0
-    mov rsi, input_buffer
-    mov rdx, 64
-    syscall
-
-    // Convert input to integers and store in int_array
-    mov rsi, input_buffer
+    //init loop counter
     mov ecx, 0
+    jmp .read_loop
 
 .read_loop:
     cmp ecx, 5
-    jge .exit_read_loop
+    jg .exit
+
+    //sys_read
+    mov rax, 0
+    mov rdi, 0
+    mov rsi, input_buffer
+    mov rdx, 32
+    syscall
 
     mov eax, [rsi]
     mov [int_array + ecx*4], eax
-    add rsi, 4
+    xor rsi, rsi
     inc ecx
     jmp .read_loop
 
-.exit_read_loop:
-
-    // sys_exit
+.exit:
     mov rax, 60
     xor rdi, rdi
     syscall
