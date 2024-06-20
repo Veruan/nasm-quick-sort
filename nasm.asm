@@ -75,32 +75,31 @@ clean_after_read:
     xor edi, edi
     xor esi, esi
 
+    ;lea eax, [array]            ; eax holds array address
+    ;push dword 4                ; push left right index
+    ;push dword 0                ; push left index
+    ;push eax                    ; push array
     ;call quick_sort
+    ;add esp, 12
 
     jmp print_array
-
-quick_sort:
-    sub esp, 4
 
 print_array:
     xor esi, esi                ; reset loop counter
 
 print_loop:
-    cmp esi, 5                  ; compare loop counter with 5
-    je exit                     ; if counter >= 5, exit
+    cmp esi, 5                  ; print 5 chars
+    je exit
 
-    ; Load integer from array
     mov eax, [array + esi*4]
     call int_to_string          ; convert integer to string
 
-    ; Print string
     mov eax, 4                  ; syscall number for sys_write
     mov ebx, 1                  ; file descriptor (stdout)
     mov ecx, str_buffer         ; pointer to the string buffer
     mov edx, 12                 ; length of the buffer
     int 0x80                    ; call kernel
 
-    ; Print newline
     mov eax, 4
     mov ebx, 1
     lea ecx, [newline]
@@ -116,7 +115,6 @@ int_to_string:
     mov edi, str_buffer + 11    ; point to the end of the buffer
     mov byte [edi], 0           ; null terminator
 
-    ; Handle zero explicitly
     test eax, eax
     jnz int_to_string_loop
     mov byte [edi - 1], '0'
