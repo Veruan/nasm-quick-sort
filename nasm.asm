@@ -42,27 +42,33 @@ read_loop:
 
 strip_newline:
     cmp byte [ecx + ebx], 10    ; if char is \n we convert the number to int
-    je convert_loop 
+    je convert_loop_start 
     
     inc ebx
     jmp strip_newline           ; else - we loop
 
+convert_loop_start:
+    mov edx, ebx                ; \n index
+    xor ebx, ebx
+
+    jmp convert_loop
+
 convert_loop:
-    cmp ebx, 0                  ; if offset is equal 0 we already checked 0th offset - entire string
+    cmp ebx, edx                ; if offset is equal max num
     je store_int
 
     imul edi, edi, 10           ; multiply current edi val by 10
     
-    dec ebx                     ; dec ebx to get char before \n
     movzx eax, byte [ecx + ebx] ; load next byte into eax
     sub eax, 48                 ; convert ASCII to integer
     add edi, eax                ; add to result
-
+    
+    inc ebx
     jmp convert_loop            ; repeat loop
 
 store_int:
-    mov eax, esi
-    shl eax, 2
+    mov eax, esi                ; esi holds array offset
+    shl eax, 2                  ; multiply by 4 cuz 4 bytes
     mov [array + eax], edi      ; store the integer in the array
     inc esi
     jmp read_loop               ; repeat read loop
@@ -92,6 +98,7 @@ print_loop:
     je exit
 
     mov eax, [array + esi*4]
+
     call int_to_string          ; convert integer to string
 
     mov eax, 4                  ; syscall number for sys_write
