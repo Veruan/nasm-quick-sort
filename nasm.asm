@@ -87,12 +87,12 @@ clean_after_read:
     xor edi, edi
     xor esi, esi
 
-    ;lea eax, [array]            ; eax holds array address
-    ;push dword 4                ; push left right index
-    ;push dword 0                ; push left index
-    ;push eax                    ; push array
-    ;call quick_sort
-    ;add esp, 12
+    lea eax, [array]            ; eax holds array address
+    push dword 4                ; push right index
+    push dword 0                ; push left index
+    push eax                    ; push array
+    call quick_sort
+    add esp, 12
 
     jmp print_array
 
@@ -100,6 +100,11 @@ clean_after_read:
 print_array:
     xor esi, esi                ; reset loop counter
 
+    mov eax, 4                  
+    mov ebx, 1
+    lea ecx, [newline]          ; print newline 
+    mov edx, 1
+    int 0x80
 
 print_loop:
     cmp esi, 5                  ; print 5 chars
@@ -115,9 +120,9 @@ print_loop:
     mov edx, 12                 ; length of the buffer
     int 0x80                    ; call kernel
 
-    mov eax, 4
+    mov eax, 4                  
     mov ebx, 1
-    lea ecx, [newline]
+    lea ecx, [newline]          ; print newline after character
     mov edx, 1
     int 0x80
 
@@ -190,3 +195,100 @@ exit:
 
 breakpoint:
     int 3
+
+
+quick_sort:
+;local variable q
+    push ebp
+    mov ebp, esp
+    sub esp, 4
+
+    mov eax, [ebp + 16]         ; r (right index) + 12 cuz array and l + 4 cuz return address smh
+    mov ecx, [ebp + 12]         ; l (left index)
+    cmp ecx, eax                ; if l >= r
+    jge .done                   ; return
+
+    push eax                    ; push r
+    push ecx                    ; push l
+    push dword [ebp + 8]        ; push array pointer
+
+    call partition              ; edi holds q
+    
+    push dword [ebp + 12]       ; push l
+    push edi                    ; push q
+    push dword [ebp + 8]        ; push array pointer
+    call quick_sort
+
+    inc edi
+    push edi                    ; push q + 1
+    push dword [ebp + 16]       ; push r
+    push dword [ebp + 8]        ; push array pointer
+    call quick_sort
+
+    jmp .done
+
+.done:
+    mov esp, ebp
+    pop ebp
+    ret
+
+partition:
+;local variable pivot and tmp
+    push ebp
+    mov ebp, esp
+    sub esp, 8
+
+    mov eax, [ebp + 16]         ; r (right index)
+    mov ecx, [ebp + 12]         ; l (left index)
+    mov ebx, [ebp + 8]          ; array
+
+    mov edx, [ebx + 4*ecx]      ; pivot = A[l]
+
+    jmp .partition_loop
+
+.partition_loop:
+    jmp .find_left
+
+.find_left:
+    cmp [ebx + 4*ecx], edx      ; A[l] < pivot
+    jge .left_found
+
+    inc ecx                     ; l++
+    jmp .find_left
+
+.left_found:
+    jmp .find_right
+
+.find_right:
+    cmp [ebx + 4*eax], edx      ; A[r] > pivot
+    jle .right_found
+
+    dec eax                     ; r++
+    jmp .find_right
+
+.right_found:
+    jmp .test_lr
+
+.test_lr:
+    cmp ecx, eax               ; l < r
+    jl .swap
+
+    jmp .ret_r
+
+.swap:
+    mov esi, [ebx + 4*eax]    ; tmp = A[r]
+    mov edi, [ebx + 4*ecx]
+    mov [ebx + 4*eax], edi    ; A[r] = A[l]
+    mov [ebx + 4*ecx], esi    ; A[l] = tmp 
+
+    inc ecx                   ; l++
+    dec eax                   ; r--
+    
+    jmp .partition_loop
+
+.ret_r:
+    mov edi, eax
+
+    mov esp, ebp
+    pop ebp
+    ret
