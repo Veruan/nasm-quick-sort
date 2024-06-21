@@ -25,6 +25,7 @@ _start:
     xor edi, edi                ; value storage
     jmp read_loop               ; jump to reading
 
+
 read_loop:
     cmp esi, 5                  ; compare loop counter with 5
     je clean_after_read         ; if counter >= 5, exit loop
@@ -40,6 +41,7 @@ read_loop:
     xor eax, eax                ; clear eax (help register)
     jmp strip_newline           ; jump to stripping \n
 
+
 strip_newline:
     cmp byte [ecx + ebx], 10    ; if char is \n we convert the number to int
     je convert_loop_start 
@@ -47,11 +49,13 @@ strip_newline:
     inc ebx
     jmp strip_newline           ; else - we loop
 
+
 convert_loop_start:
     mov edx, ebx                ; \n index
     xor ebx, ebx
 
     jmp convert_loop
+
 
 convert_loop:
     cmp ebx, edx                ; if offset is equal max num
@@ -66,12 +70,14 @@ convert_loop:
     inc ebx
     jmp convert_loop            ; repeat loop
 
+
 store_int:
     mov eax, esi                ; esi holds array offset
     shl eax, 2                  ; multiply by 4 cuz 4 bytes
     mov [array + eax], edi      ; store the integer in the array
     inc esi
     jmp read_loop               ; repeat read loop
+
 
 clean_after_read:
     xor eax, eax
@@ -90,20 +96,22 @@ clean_after_read:
 
     jmp print_array
 
+
 print_array:
     xor esi, esi                ; reset loop counter
+
 
 print_loop:
     cmp esi, 5                  ; print 5 chars
     je exit
 
-    mov eax, [array + esi*4]
+    mov eax, [array + esi*4]    ; move int from array into eax
 
     call int_to_string          ; convert integer to string
 
     mov eax, 4                  ; syscall number for sys_write
     mov ebx, 1                  ; file descriptor (stdout)
-    mov ecx, str_buffer         ; pointer to the string buffer
+    lea ecx, [str_buffer]       ; pointer to the string buffer
     mov edx, 12                 ; length of the buffer
     int 0x80                    ; call kernel
 
@@ -113,34 +121,67 @@ print_loop:
     mov edx, 1
     int 0x80
 
+    call clean_buffer           ; to clean after larger numbers before e.g. 10, 2 -> without it output is 10, 12
+
     inc esi
     jmp print_loop              ; repeat loop
+
 
 int_to_string:
     ; Arguments: eax = integer to convert
     ; Returns: string in str_buffer
-    mov edi, str_buffer + 11    ; point to the end of the buffer
-    mov byte [edi], 0           ; null terminator
+    mov ebx, 11                 ; buffer offset
+    lea edi, [str_buffer]
+    mov byte [edi + ebx], 0     ; null terminator
 
-    test eax, eax
-    jnz int_to_string_loop
-    mov byte [edi - 1], '0'
-    dec edi
-    jmp int_to_string_done
+    dec ebx 
+
+    jmp int_to_string_loop
+
 
 int_to_string_loop:
+    cmp ebx, 0
+    je int_to_string_done
+
     xor edx, edx
     mov ecx, 10
-    div ecx
-    add dl, '0'
-    dec edi
-    mov [edi], dl
-    test eax, eax
-    jnz int_to_string_loop
+    div ecx                     ; now eax = eax / 10, edx = eax % 10 -> dl also holds it
+
+    add dl, 48                  ; convert to ASCII
+    mov byte [edi + ebx], dl
+
+    dec ebx
+
+    cmp eax, 0                  ; if eax is 0 that means we already went through all of the numbers
+    je int_to_string_done
+
+    jmp int_to_string_loop
+    
 
 int_to_string_done:
     lea ecx, [edi]
     ret
+
+
+clean_buffer:
+    xor ebx, ebx
+    lea ecx, [str_buffer]
+    jmp clean_buffer_loop
+
+
+clean_buffer_loop:
+    cmp ebx, 11
+    je clean_buffer_done
+
+    mov byte [ecx + ebx], 0
+    
+    inc ebx
+    jmp clean_buffer_loop
+
+
+clean_buffer_done:
+    ret
+
 
 exit:
     mov eax, 1                  ; syscall number for sys_exit
