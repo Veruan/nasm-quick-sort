@@ -213,18 +213,21 @@ quick_sort:
     push dword [ebp + 8]        ; push array pointer
 
     call partition              ; edi holds q
+    sub esp, 12
     
     push dword [ebp + 12]       ; push l
     push edi                    ; push q
     push dword [ebp + 8]        ; push array pointer
     call quick_sort
+    sub esp, 12
 
     inc edi
     push edi                    ; push q + 1
     push dword [ebp + 16]       ; push r
     push dword [ebp + 8]        ; push array pointer
     call quick_sort
-
+    sub esp, 12
+    
     jmp .done
 
 .done:
@@ -263,7 +266,7 @@ partition:
     cmp [ebx + 4*eax], edx      ; A[r] > pivot
     jle .right_found
 
-    dec eax                     ; r++
+    dec eax                     ; r--
     jmp .find_right
 
 .right_found:
