@@ -214,20 +214,20 @@ quick_sort:
 
     call partition              ; edi holds q
     sub esp, 12
-    
-    push dword [ebp + 12]       ; push l
+
     push edi                    ; push q
+    push dword [ebp + 12]       ; push l
     push dword [ebp + 8]        ; push array pointer
     call quick_sort
     sub esp, 12
 
     inc edi
-    push edi                    ; push q + 1
     push dword [ebp + 16]       ; push r
+    push edi                    ; push q + 1
     push dword [ebp + 8]        ; push array pointer
     call quick_sort
     sub esp, 12
-    
+
     jmp .done
 
 .done:
